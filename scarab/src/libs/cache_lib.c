@@ -1874,6 +1874,72 @@ Cache_Entry* ship_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, vo
 }
 
 /**************************************************************************************/
+/* AIP */
+void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
+  uns line_size, uns data_size, Repl_Policy repl_policy);
+void aip_update_hit(Cache* cache, uns set, uns way, void* arg);
+void aip_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg);
+Cache_Entry* aip_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external);
+
+void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
+  uns line_size, uns data_size, Repl_Policy repl_policy)
+{
+  // TODO: Incorporate functionality.
+  return;
+}
+
+void aip_update_hit(Cache* cache, uns set, uns way, void* arg)
+{
+  // TODO: Incorporate functionality.
+  return;
+}
+
+void aip_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
+{
+  // TODO: Incorporate functionality.
+  return;
+}
+
+Cache_Entry* aip_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external)
+{
+  // TODO: Incorporate functionality.
+  return NULL;
+}
+
+/**************************************************************************************/
+/* LvP */
+void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
+  uns line_size, uns data_size, Repl_Policy repl_policy);
+void lvp_update_hit(Cache* cache, uns set, uns way, void* arg);
+void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg);
+Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external);
+
+void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
+  uns line_size, uns data_size, Repl_Policy repl_policy)
+{
+  // TODO: Incorporate functionality.
+  return;
+}
+
+void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
+{
+  // TODO: Incorporate functionality.
+  return;
+}
+
+void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
+{
+  // TODO: Incorporate functionality.
+  return;
+}
+
+Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external)
+{
+  // TODO: Incorporate functionality.
+  return NULL;
+}
+
+/**************************************************************************************/
 /* Driven Table */
 struct repl_policy_func repl_policy_func_table[NUM_REPL] = {
   { REPL_LRU_REF, general_action_init,  general_action_repl,  lru_update_hit,     lru_update_insert,    lru_update_evict    },
@@ -1882,6 +1948,8 @@ struct repl_policy_func repl_policy_func_table[NUM_REPL] = {
   { REPL_BRRIP,   brrip_action_init,    general_action_repl,  nru_update_hit,     brrip_update_insert,  srrip_update_evict  },
   { REPL_DRRIP,   drrip_action_init,    general_action_repl,  nru_update_hit,     drrip_update_insert,  drrip_update_evict  },
   { REPL_SHIP,    ship_action_init,     general_action_repl,  ship_update_hit,    ship_update_insert,   ship_update_evict   },
+  { REPL_AIP,     aip_action_init,      general_action_repl,  aip_update_hit,     aip_update_insert,    aip_update_evict    },
+  { REPL_LvP,     lvp_action_init,      general_action_repl,  lvp_update_hit,     lvp_update_insert,    lvp_update_evict    },
   { REPL_VOID,    NULL,                 NULL,                 NULL,               NULL,                 NULL                },
 };
 /**************************************************************************************/
