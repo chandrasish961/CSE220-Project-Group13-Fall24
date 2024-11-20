@@ -64,6 +64,8 @@ typedef enum Repl_Policy_enum {
   REPL_BRRIP,           /* bimodal re-reference interval prediction */
   REPL_DRRIP,           /* dynamic re-reference interval prediction */
   REPL_SHIP,            /* signature-based hit predictor */
+  REPL_AIP,             /* Access Interval Predictor */
+  REPL_LvP,             /* Live Time Predictor */
 
   NUM_REPL
 } Repl_Policy;
