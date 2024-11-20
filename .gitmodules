@@ -1,0 +1,3 @@
+[submodule "scarab"]
+	path = scarab
+	url = https://github.com/chandrasish961/CSE220-Fall24-Group13.git
