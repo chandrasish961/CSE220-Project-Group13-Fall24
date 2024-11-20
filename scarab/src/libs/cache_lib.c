@@ -1923,8 +1923,14 @@ void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
 
 void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
 {
-  // TODO: Incorporate functionality.
-  return;
+  // Track the hit count for the line in a 4-bit saturating counter.
+  cache->entries[set][way].reference_val++;
+  if (cache->entries[set][way].reference_val > 15)
+  {
+    cache->entries[set][way].reference_val = 15;
+  }
+
+  cache_debug_print_set(cache, set, way, CACHE_EVENT_HIT);
 }
 
 void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
