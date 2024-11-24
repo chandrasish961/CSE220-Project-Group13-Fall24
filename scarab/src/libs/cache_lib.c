@@ -1908,6 +1908,15 @@ Cache_Entry* aip_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
 
 /**************************************************************************************/
 /* LvP */
+
+/* LvP History Table */
+typedef struct lvp_table {
+  uns8    reference_val_maxStored;    	/* stored generation data */
+  Flag    outcome;                  	/* confidence bit */
+} lvp_table;
+
+lvp_table history_table[256][256];
+
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
 void lvp_update_hit(Cache* cache, uns set, uns way, void* arg);
@@ -1917,8 +1926,31 @@ Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy)
 {
-  // TODO: Incorporate functionality.
-  return;
+  int ii, jj;
+  uns num_sets  = cache_size / line_size / assoc;
+  general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
+
+  /* allocate history table */
+  cache->predictor = (void *)history_table;
+  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
+ 
+  /* init the history table */
+  for(ii = 0; ii < 256; ii++) {
+    for(jj = 0; jj < 256; jj++) {
+    	table[ii][jj].reference_val_maxStored  = 15;
+	table[ii][jj].outcome    	       = 0;
+    }
+  }
+
+  /* init the per cache-block fields */
+  for(ii = 0; ii < num_sets; ii++) {
+    for(jj = 0; jj < assoc; jj++) {
+      cache->entries[ii][jj].hashedPC              = 0;
+      cache->entries[ii][jj].reference_val 	   = 0;
+      cache->entries[ii][jj].reference_val_maxPast = 0;
+      cache->entries[ii][jj].outcome 	           = 0;
+    }
+  }
 }
 
 void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
