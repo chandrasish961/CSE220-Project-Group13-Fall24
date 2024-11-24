@@ -78,19 +78,22 @@ typedef enum Cache_Repl_Signiture_enum {
 
 typedef struct Cache_Entry_struct {
   uns8    proc_id;
-  Flag    valid;            /* valid bit for the line */
-  Addr    tag;              /* tag for the line */
-  Addr    base;             /* address of first element */
-  Counter last_access_time; /* for replacement policy */
-  Counter insertion_time;   /* for replacement policy */
-  void*   data;             /* pointer to arbitrary data */
-  Flag    pref;             /* extra replacement info */
-  Flag    dirty; /* Dirty bit should have been here, however this is used only in
-                 warmup now */
-  Addr pw_start_addr; /* for uop cache: start addr of prediction window */
+  Flag    valid;            		/* valid bit for the line */
+  Addr    tag;              		/* tag for the line */
+  Addr    base;             		/* address of first element */
+  Addr    hashedPC;         		/* hash of the PC that inserted the block in the cache */
+  Counter last_access_time; 		/* for replacement policy */
+  Counter insertion_time;   		/* for replacement policy */
+  void*   data;             		/* pointer to arbitrary data */
+  Flag    pref;             	    	/* extra replacement info */
+  Flag    dirty;                 	/* Dirty bit should have been here, however this is used only in
+                                           warmup now */
+  Addr pw_start_addr;               	/* for uop cache: start addr of prediction window */
 
-  uns8    reference_val;    /* for re-reference replacement policy */
-  Flag    outcome;          /* for replacement policy */
+  uns8    reference_val;            	/* for re-reference replacement policy */
+  uns8    reference_val_maxPast;    	/* max of past generation data, required by AIP and LvP */
+  uns8    reference_val_maxPresent;    	/* max of present generation data, required by AIP and LvP */
+  Flag    outcome;                  	/* for replacement policy */
 } Cache_Entry;
 
 // DO NOT CHANGE THIS ORDER
