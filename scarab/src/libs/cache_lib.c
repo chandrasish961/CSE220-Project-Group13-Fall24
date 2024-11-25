@@ -1885,12 +1885,29 @@ void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy)
 {
   // TODO: Incorporate functionality.
+  int ii, jj;
+  uns num_sets  = cache_size / line_size / assoc;
+  general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
+
+  for(ii = 0; ii < num_sets; ii++) {
+    for(jj = 0; jj < assoc; jj++) {
+      cache->entries[ii][jj].reference_val = 0;
+    }
+  }
   return;
 }
 
 void aip_update_hit(Cache* cache, uns set, uns way, void* arg)
 {
   // TODO: Incorporate functionality.
+  // Increment counter
+  cache->entries[set][way].reference_val++;
+  if (cache->entries[set][way].reference_val > 15)
+  {
+    cache->entries[set][way].reference_val = 15;
+  }
+
+  cache_debug_print_set(cache, set, way, CACHE_EVENT_HIT);
   return;
 }
 
