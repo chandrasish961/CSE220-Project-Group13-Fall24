@@ -1925,6 +1925,15 @@ Cache_Entry* aip_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
 
 /**************************************************************************************/
 /* LvP */
+
+/* LvP History Table */
+typedef struct lvp_table {
+  uns8    reference_val_maxStored;    	/* stored generation data */
+  Flag    outcome;                  	/* confidence bit */
+} lvp_table;
+
+lvp_table history_table[256][256];
+
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
 void lvp_update_hit(Cache* cache, uns set, uns way, void* arg);
@@ -1934,8 +1943,31 @@ Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy)
 {
-  // TODO: Incorporate functionality.
-  return;
+  int ii, jj;
+  uns num_sets  = cache_size / line_size / assoc;
+  general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
+
+  /* allocate history table */
+  cache->predictor = (void *)history_table;
+  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
+ 
+  /* init the history table */
+  for(ii = 0; ii < 256; ii++) {
+    for(jj = 0; jj < 256; jj++) {
+    	table[ii][jj].reference_val_maxStored  = 15;
+	table[ii][jj].outcome    	       = 0;
+    }
+  }
+
+  /* init the per cache-block fields */
+  for(ii = 0; ii < num_sets; ii++) {
+    for(jj = 0; jj < assoc; jj++) {
+      cache->entries[ii][jj].hashedPC              = 0;
+      cache->entries[ii][jj].reference_val 	   = 0;
+      cache->entries[ii][jj].reference_val_maxPast = 0;
+      cache->entries[ii][jj].outcome 	           = 0;
+    }
+  }
 }
 
 void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
@@ -1952,8 +1984,32 @@ void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
 
 void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
 {
-  // TODO: Incorporate functionality.
-  return;
+  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
+  Addr        line_addr   = cache->entries[set][way].base;
+  uns8        hash_addr   = 0;
+  uns8        hash_pc     = 0;
+  uns8        temp;
+
+    // Extract a 8-bit hash of the cache line address.
+    while (line_addr > 0) {
+    	// Extract the least significant 8 bits.
+        temp = line_addr & 0xFF;
+
+	// XOR with the hash.
+        hash_addr ^= temp;
+
+	// Shift right by 8 bits to process the next chunk.
+        line_addr >>= 8;
+    }
+
+    // TODO-Chandrashis: Extract a 8-bit hash of the PC.
+
+    cache->entries[set][way].hashedPC              = hash_pc;
+    cache->entries[set][way].reference_val 	   = 0;
+    cache->entries[set][way].reference_val_maxPast = table[cache->entries[set][way].hashedPC][hash_addr].reference_val_maxStored;
+    cache->entries[set][way].outcome               = table[cache->entries[set][way].hashedPC][hash_addr].outcome;
+
+  cache_debug_print_set(cache, set, way, CACHE_EVENT_INSERT);
 }
 
 Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external)
