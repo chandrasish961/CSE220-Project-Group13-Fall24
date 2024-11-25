@@ -1875,6 +1875,15 @@ Cache_Entry* ship_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, vo
 
 /**************************************************************************************/
 /* AIP */
+
+/* AIP History Table */
+typedef struct lvp_table {
+  uns8    reference_val_maxStored;    	/* stored generation data */
+  Flag    outcome;                  	/* confidence bit */
+} aip_table;
+
+aip_table history_table[256][256]
+
 void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
 void aip_update_hit(Cache* cache, uns set, uns way, void* arg);
@@ -1889,9 +1898,23 @@ void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns num_sets  = cache_size / line_size / assoc;
   general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
 
+  /* allocate history table */
+  cache->predictor = (void *)history_table;
+  aip_table (*table)[256] = (aip_table (*)[256])cache->predictor;
+
   for(ii = 0; ii < num_sets; ii++) {
     for(jj = 0; jj < assoc; jj++) {
       cache->entries[ii][jj].reference_val = 0;
+    }
+  }
+
+    /* init the per cache-block fields */
+  for(ii = 0; ii < num_sets; ii++) {
+    for(jj = 0; jj < assoc; jj++) {
+      cache->entries[ii][jj].hashedPC              = 0;
+      cache->entries[ii][jj].reference_val 	   = 0;
+      cache->entries[ii][jj].reference_val_maxPresent = 0;
+      cache->entries[ii][jj].outcome 	           = 0;
     }
   }
   return;
@@ -1906,6 +1929,12 @@ void aip_update_hit(Cache* cache, uns set, uns way, void* arg)
   {
     cache->entries[set][way].reference_val = 15;
   }
+  // If the access is a hit, reset x's counter after recording the new threshold maximum:
+  // x.maxCpresent = max(x.C, x.maxCpresent)
+  // x.C = 0
+  if cache->entries[ii][jj].reference_val_maxPresent < cache->entries[set][way].reference_val:
+    cache->entries[ii][jj].reference_val_maxPresent = cache->entries[set][way].reference_val
+  cache->entries[set][way].reference_val = 0
 
   cache_debug_print_set(cache, set, way, CACHE_EVENT_HIT);
   return;
