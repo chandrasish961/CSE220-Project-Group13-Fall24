@@ -1967,8 +1967,32 @@ void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
 
 void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
 {
-  // TODO: Incorporate functionality.
-  return;
+  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
+  Addr        line_addr   = cache->entries[set][way].base;
+  uns8        hash_addr   = 0;
+  uns8        hash_pc     = 0;
+  uns8        temp;
+
+    // Extract a 8-bit hash of the cache line address.
+    while (line_addr > 0) {
+    	// Extract the least significant 8 bits.
+        temp = line_addr & 0xFF;
+
+	// XOR with the hash.
+        hash_addr ^= temp;
+
+	// Shift right by 8 bits to process the next chunk.
+        line_addr >>= 8;
+    }
+
+    // TODO-Chandrashis: Extract a 8-bit hash of the PC.
+
+    cache->entries[set][way].hashedPC              = hash_pc;
+    cache->entries[set][way].reference_val 	   = 0;
+    cache->entries[set][way].reference_val_maxPast = table[cache->entries[set][way].hashedPC][hash_addr].reference_val_maxStored;
+    cache->entries[set][way].outcome               = table[cache->entries[set][way].hashedPC][hash_addr].outcome;
+
+  cache_debug_print_set(cache, set, way, CACHE_EVENT_INSERT);
 }
 
 Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external)

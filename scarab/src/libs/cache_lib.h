@@ -81,7 +81,7 @@ typedef struct Cache_Entry_struct {
   Flag    valid;            		/* valid bit for the line */
   Addr    tag;              		/* tag for the line */
   Addr    base;             		/* address of first element */
-  Addr    hashedPC;         		/* hash of the PC that inserted the block in the cache */
+  uns8    hashedPC;         		/* 8-bit hash of the PC that inserted the block in the cache */
   Counter last_access_time; 		/* for replacement policy */
   Counter insertion_time;   		/* for replacement policy */
   void*   data;             		/* pointer to arbitrary data */
@@ -92,7 +92,7 @@ typedef struct Cache_Entry_struct {
 
   uns8    reference_val;            	/* for re-reference replacement policy */
   uns8    reference_val_maxPast;    	/* max of past generation data, required by AIP and LvP */
-  uns8    reference_val_maxPresent;    	/* max of present generation data, required by AIP and LvP */
+  uns8    reference_val_maxPresent;    	/* max of present generation data, required by AIP */
   Flag    outcome;                  	/* for replacement policy */
 } Cache_Entry;
 
