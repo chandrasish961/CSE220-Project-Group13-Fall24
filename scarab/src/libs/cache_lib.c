@@ -1932,8 +1932,8 @@ void aip_update_hit(Cache* cache, uns set, uns way, void* arg)
   // If the access is a hit, reset x's counter after recording the new threshold maximum:
   // x.maxCpresent = max(x.C, x.maxCpresent)
   // x.C = 0
-  if cache->entries[ii][jj].reference_val_maxPresent < cache->entries[set][way].reference_val:
-    cache->entries[ii][jj].reference_val_maxPresent = cache->entries[set][way].reference_val
+  if cache->entries[set][way].reference_val_maxPresent < cache->entries[set][way].reference_val:
+    cache->entries[set][way].reference_val_maxPresent = cache->entries[set][way].reference_val
   cache->entries[set][way].reference_val = 0
 
   cache_debug_print_set(cache, set, way, CACHE_EVENT_HIT);
