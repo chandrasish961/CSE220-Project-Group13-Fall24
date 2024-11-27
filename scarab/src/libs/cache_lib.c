@@ -1876,14 +1876,6 @@ Cache_Entry* ship_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, vo
 /**************************************************************************************/
 /* AIP */
 
-/* AIP History Table */
-typedef struct lvp_table {
-  uns8    reference_val_maxStored;    	/* stored generation data */
-  Flag    outcome;                  	/* confidence bit */
-} aip_table;
-
-aip_table history_table[256][256]
-
 void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
 void aip_update_hit(Cache* cache, uns set, uns way, void* arg);
@@ -1894,82 +1886,18 @@ void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy)
 {
   // TODO: Incorporate functionality.
-  int ii, jj;
-  uns num_sets  = cache_size / line_size / assoc;
-  general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
-
-  /* allocate history table */
-  cache->predictor = (void *)history_table;
-  aip_table (*table)[256] = (aip_table (*)[256])cache->predictor;
-
-  for(ii = 0; ii < num_sets; ii++) {
-    for(jj = 0; jj < assoc; jj++) {
-      cache->entries[ii][jj].reference_val = 0;
-    }
-  }
-
-    /* init the per cache-block fields */
-  for(ii = 0; ii < num_sets; ii++) {
-    for(jj = 0; jj < assoc; jj++) {
-      cache->entries[ii][jj].hashedPC              = 0;
-      cache->entries[ii][jj].reference_val 	   = 0;
-      cache->entries[ii][jj].reference_val_maxPresent = 0;
-      cache->entries[ii][jj].reference_val_maxPast = 0;
-      cache->entries[ii][jj].outcome 	           = 0;
-    }
-  }
   return;
 }
 
 void aip_update_hit(Cache* cache, uns set, uns way, void* arg)
 {
   // TODO: Incorporate functionality.
-  // Increment counter
-  cache->entries[set][way].reference_val++;
-  if (cache->entries[set][way].reference_val > 15)
-  {
-    cache->entries[set][way].reference_val = 15;
-  }
-  // If the access is a hit, reset x's counter after recording the new threshold maximum:
-  // x.maxCpresent = max(x.C, x.maxCpresent)
-  // x.C = 0
-  if cache->entries[set][way].reference_val_maxPresent < cache->entries[set][way].reference_val:
-    cache->entries[set][way].reference_val_maxPresent = cache->entries[set][way].reference_val
-  cache->entries[set][way].reference_val = 0
-
-  cache_debug_print_set(cache, set, way, CACHE_EVENT_HIT);
   return;
 }
 
 void aip_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
 {
   // TODO: Incorporate functionality.
-  aip_table (*table)[256] = (aip_table (*)[256])cache->predictor;
-  Addr        line_addr   = cache->entries[set][way].base;
-  uns8        hash_addr   = 0;
-  uns8        hash_pc     = 0;
-  uns8        temp;
-
-    // Extract a 8-bit hash of the cache line address.
-    while (line_addr > 0) {
-    	// Extract the least significant 8 bits.
-        temp = line_addr & 0xFF;
-
-	// XOR with the hash.
-        hash_addr ^= temp;
-
-	// Shift right by 8 bits to process the next chunk.
-        line_addr >>= 8;
-    }
-
-    // TODO-Chandrashis: Extract a 8-bit hash of the PC.
-
-    cache->entries[set][way].hashedPC              = hash_pc;
-    cache->entries[set][way].reference_val 	   = table[cache->entries[set][way].hashedPC][hash_addr].reference_val_maxStored;
-    cache->entries[set][way].reference_val_maxPast = 0;
-    cache->entries[set][way].outcome               = table[cache->entries[set][way].hashedPC][hash_addr].outcome;
-
-  cache_debug_print_set(cache, set, way, CACHE_EVENT_INSERT);
   return;
 }
 
@@ -1988,7 +1916,7 @@ typedef struct lvp_table {
   Flag    outcome;                  	/* confidence bit */
 } lvp_table;
 
-lvp_table history_table[256][256];
+lvp_table lvp_history_table[256][256];
 
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
@@ -2004,7 +1932,7 @@ void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
 
   /* allocate history table */
-  cache->predictor = (void *)history_table;
+  cache->predictor = (void *)lvp_history_table;
   lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
  
   /* init the history table */
@@ -2070,8 +1998,59 @@ void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
 
 Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external)
 {
-  // TODO: Incorporate functionality.
-  return NULL;
+  lvp_table  (*table)[256] = (lvp_table (*)[256])cache->predictor;
+  int          ii;
+  Cache_Entry* line;
+  Addr         line_addr;
+  uns8         temp;
+  Addr         hash_addr = 0;
+  Flag         found     = FALSE;
+
+  for(ii = 0; ii < cache->assoc; ii++) {
+    if ((cache->entries[set][ii].reference_val >= cache->entries[set][ii].reference_val_maxPast) &&
+        (cache->entries[set][ii].outcome))
+    {
+      *way = ii;
+      found = TRUE;
+      break;
+    }
+  }
+
+  if (found){
+    line = &cache->entries[set][*way];
+  }
+  else{
+    // If no line predicted dead, choose the SRRIP eviction candidate instead.
+    line = srrip_update_evict(cache, proc_id, set, way, arg, if_external);
+  }
+
+  // Extract the eviction candidate address.
+  line_addr = line->base;
+
+  // Extract a 8-bit hash of the cache line address.
+  while (line_addr > 0) {
+
+    // Extract the least significant 8 bits.
+    temp = line_addr & 0xFF;
+
+    // XOR with the hash.
+    hash_addr ^= temp;
+
+    // Shift right by 8 bits to process the next chunk.
+    line_addr >>= 8;
+  }
+
+  // history table update
+  table[line->hashedPC][hash_addr].reference_val_maxStored = line->reference_val;
+  if (line->reference_val == line->reference_val_maxPast){
+    table[line->hashedPC][hash_addr].outcome = TRUE;
+  }
+  else{
+    table[line->hashedPC][hash_addr].outcome = FALSE;
+  }
+
+  cache_debug_print_set(cache, set, *way, CACHE_EVENT_EVICT);
+  return line;
 }
 
 /**************************************************************************************/
