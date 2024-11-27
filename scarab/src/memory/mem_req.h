@@ -171,6 +171,7 @@ struct Mem_Req_struct {
                             */
   Flag wb_used_onpath;     /* is this a writeback that was used onpath? */
   Addr loadPC;        /* load PC of the oldest load requesting this address */
+  Addr lastPC;        /* PC of the instruction requesting this address */
   uns8 prefetcher_id; /* which Prefetcher sent this prefetch */
 
   uns pref_distance; /* prefetch distance (currently works for pref_stream only)

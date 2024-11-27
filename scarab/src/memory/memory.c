@@ -3794,6 +3794,9 @@ Flag new_mem_req(Mem_Req_Type type, uns8 proc_id, Addr addr, uns size,
   /* Step 2: Found matching request. Adjust it based on the current request */
 
   if(matching_req) {
+    // Save the PC initiating this memory request.
+    matching_req->lastPC = op ? op->inst_info->addr : 0;
+
     // Simulation inaccuracy: an L2-destined request can match a request in the
     // MLC queue, not the other way around
     if(!to_mlc && (matching_req->queue == &mem->mlc_queue))
@@ -3955,6 +3958,7 @@ Flag new_mem_req(Mem_Req_Type type, uns8 proc_id, Addr addr, uns size,
    * there */
 
   new_req->loadPC        = op ? op->inst_info->addr : 0;
+  new_req->lastPC        = new_req->loadPC;
   new_req->prefetcher_id = (pref_info ? pref_info->prefetcher_id : 0);
   new_req->pref_distance = (pref_info ? pref_info->distance : 0);
   new_req->pref_loadPC   = (pref_info ? pref_info->loadPC : 0);
