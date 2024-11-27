@@ -1967,9 +1967,10 @@ void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
   cache_debug_print_set(cache, set, way, CACHE_EVENT_HIT);
 }
 
-void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
+void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* lastPC)
 {
   lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
+  Addr        pc_addr     = *((Addr *)lastPC);
   Addr        line_addr   = cache->entries[set][way].base;
   uns8        hash_addr   = 0;
   uns8        hash_pc     = 0;
@@ -1987,7 +1988,17 @@ void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg)
         line_addr >>= 8;
     }
 
-    // TODO-Chandrashis: Extract a 8-bit hash of the PC.
+    // Extract a 8-bit hash of the insertion PC.
+    while (pc_addr > 0) {
+    	// Extract the least significant 8 bits.
+        temp = pc_addr & 0xFF;
+
+	// XOR with the hash.
+        hash_pc ^= temp;
+
+	// Shift right by 8 bits to process the next chunk.
+        pc_addr >>= 8;
+    }
 
     cache->entries[set][way].hashedPC              = hash_pc;
     cache->entries[set][way].reference_val 	   = 0;
