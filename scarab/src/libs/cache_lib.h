@@ -190,7 +190,8 @@ void* cache_insert(Cache*, uns8, Addr, Addr*, Addr*, Addr*);
 void* cache_insert_replpos(Cache* cache, uns8 proc_id, Addr addr,
                            Addr* line_addr, Addr* repl_line_addr,
                            Cache_Insert_Repl insert_repl_policy,
-                           Flag              isPrefetch);
+                           Flag              isPrefetch,
+                           Addr*             lastPC);
 void* cache_insert_lru(Cache*, uns8, Addr, Addr*, Addr*);
 void  cache_invalidate(Cache*, Addr, Addr*);
 void  cache_flush(Cache*);

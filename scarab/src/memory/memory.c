@@ -4602,7 +4602,7 @@ Flag l1_fill_line(Mem_Req* req) {
     }
     data = (L1_Data*)cache_insert_replpos(
       &L1(req->proc_id)->cache, req->proc_id, req->addr, &line_addr,
-      &repl_line_addr, mem->pref_replpos, TRUE);
+      &repl_line_addr, mem->pref_replpos, TRUE, &req->lastPC);
     if(repl_line_addr &&
        (!data->prefetch ||
         (data->prefetch && data->seen_prefetch)))  // Prefetch kicks out demand
@@ -4781,7 +4781,7 @@ Flag mlc_fill_line(Mem_Req* req) {
     }
     data = (MLC_Data*)cache_insert_replpos(
       &MLC(req->proc_id)->cache, req->proc_id, req->addr, &line_addr,
-      &repl_line_addr, mem->pref_replpos, TRUE);
+      &repl_line_addr, mem->pref_replpos, TRUE, NULL);
   } else {
     data = (MLC_Data*)cache_insert(&MLC(req->proc_id)->cache, req->proc_id,
                                    req->addr, &line_addr, &repl_line_addr, NULL);

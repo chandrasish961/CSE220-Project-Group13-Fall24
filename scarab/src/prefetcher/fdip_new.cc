@@ -1448,7 +1448,7 @@ void update_useful_lines(uns proc_id, Op* op) {
         void* cnt = (void*)cache_access(&per_core_fdip_uc[proc_id], useful_cl_addr, &uc_line_addr, TRUE);
         if (!cnt)
           cache_insert_replpos(&per_core_fdip_uc[proc_id], fdip_proc_id, useful_cl_addr, &uc_line_addr,
-              &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE);
+              &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE, NULL);
         UNUSED(uc_line_addr);
         if (repl_uc_line_addr)
           STAT_EVENT(proc_id, FDIP_UC_REPLACEMENT);
@@ -1475,7 +1475,7 @@ void update_unuseful_lines_uc(uns proc_id, Addr line_addr) {
   void* cnt = (void*)cache_access(&per_core_fdip_uc_unuseful[proc_id], line_addr, &uc_line_addr, TRUE);
   if (!cnt)
     cache_insert_replpos(&per_core_fdip_uc_unuseful[proc_id], fdip_proc_id, line_addr, &uc_line_addr,
-        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE);
+        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE, NULL);
   UNUSED(uc_line_addr);
   if (repl_uc_line_addr)
     STAT_EVENT(proc_id, FDIP_UC_REPLACEMENT);
@@ -1489,7 +1489,7 @@ void update_useful_lines_uc(uns proc_id, Addr line_addr) {
   void* cnt = (void*)cache_access(&per_core_fdip_uc[proc_id], line_addr, &uc_line_addr, TRUE);
   if (!cnt)
     cache_insert_replpos(&per_core_fdip_uc[proc_id], fdip_proc_id, line_addr, &uc_line_addr,
-        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE);
+        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE, NULL);
   UNUSED(uc_line_addr);
   if (repl_uc_line_addr)
     STAT_EVENT(proc_id, FDIP_UC_REPLACEMENT);
@@ -1578,7 +1578,7 @@ void inc_useful_lines_uc(uns proc_id, Addr line_addr) {
   int32_t* cnt = (int32_t*)cache_access(&per_core_fdip_uc_signed[proc_id], line_addr, &uc_line_addr, TRUE);
   if (!cnt) {
     cnt = (int32_t*)cache_insert_replpos(&per_core_fdip_uc_signed[proc_id], fdip_proc_id, line_addr, &uc_line_addr,
-        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE);
+        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE, NULL);
     *cnt = UDP_USEFUL_THRESHOLD+UDP_WEIGHT_USEFUL;
     DEBUG(proc_id, "Insert uc cnt with value %d\n", *cnt);
   }
@@ -1600,7 +1600,7 @@ void dec_useful_lines_uc(uns proc_id, Addr line_addr) {
   int32_t* cnt = (int32_t*)cache_access(&per_core_fdip_uc_signed[proc_id], line_addr, &uc_line_addr, TRUE);
   if (!cnt) {
     cnt = (int32_t*)cache_insert_replpos(&per_core_fdip_uc_signed[proc_id], fdip_proc_id, line_addr, &uc_line_addr,
-        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE);
+        &repl_uc_line_addr, (Cache_Insert_Repl)FDIP_UC_INSERT_REPLPOL, FALSE, NULL);
     *cnt = UDP_USEFUL_THRESHOLD-UDP_WEIGHT_UNUSEFUL;
     DEBUG(proc_id, "Insert uc cnt with value %d\n", *cnt);
   }

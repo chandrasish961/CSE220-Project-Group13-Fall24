@@ -287,7 +287,7 @@ void* cache_insert(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr,
     return cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr, lastPC);
 
   return cache_insert_replpos(cache, proc_id, addr, line_addr, repl_line_addr,
-                              INSERT_REPL_DEFAULT, FALSE);
+                              INSERT_REPL_DEFAULT, FALSE, lastPC);
 }
 /**************************************************************************************/
 /* cache_insert_replpos: returns a pointer to the data section of the new cache
@@ -301,7 +301,8 @@ void* cache_insert(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr,
 void* cache_insert_replpos(Cache* cache, uns8 proc_id, Addr addr,
                            Addr* line_addr, Addr* repl_line_addr,
                            Cache_Insert_Repl insert_repl_policy,
-                           Flag              isPrefetch) {
+                           Flag              isPrefetch,
+                           Addr*             lastPC) {
   Addr         tag;
   uns          repl_index;
   uns          set = cache_index(cache, addr, &tag, line_addr);
@@ -311,7 +312,7 @@ void* cache_insert_replpos(Cache* cache, uns8 proc_id, Addr addr,
   cache_invalidate(cache, addr, line_addr);
 
   if (cache->repl_policy >= REPL_VOID)
-    return cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr, NULL);
+    return cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr, lastPC);
 
   if(cache->repl_policy == REPL_IDEAL) {
     new_line        = insert_sure_line(cache, set, tag);
