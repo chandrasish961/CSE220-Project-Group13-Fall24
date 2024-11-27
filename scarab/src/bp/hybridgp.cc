@@ -103,7 +103,7 @@ void update_local_history(Hybridgp_State& hybridgp_state, const uns proc_id,
     ASSERT(proc_id, INF_HYBRIDGP == FALSE);
     Addr   bht_line_addr, repl_line_addr;
     uns32* bht_line = (uns32*)cache_insert(&hybridgp_state.bht, proc_id, addr,
-                                           &bht_line_addr, &repl_line_addr);
+                                           &bht_line_addr, &repl_line_addr, NULL);
     *bht_line       = new_dir << 31;
   }
 }
@@ -433,7 +433,7 @@ void bp_hybridgp_recover(Recovery_Info* recovery_info) {
     ASSERT(proc_id, INF_HYBRIDGP == FALSE);
     Addr bht_line_addr, repl_line_addr;
     local_history_entry = (uns32*)cache_insert(
-      &hybridgp_state.bht, proc_id, addr, &bht_line_addr, &repl_line_addr);
+      &hybridgp_state.bht, proc_id, addr, &bht_line_addr, &repl_line_addr, NULL);
   }
   *local_history_entry = (hybridgp_state.in_flight[branch_id].pred_phist >> 1) |
                          (recovery_info->new_dir << 31);

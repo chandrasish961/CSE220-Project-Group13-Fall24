@@ -624,7 +624,7 @@ Flag dcache_fill_line(Mem_Req* req) {
           (req->op_count ? req->oldest_op_unique_num : -1));
 
     data = (Dcache_Data*)cache_insert(&dc->pref_dcache, dc->proc_id, req->addr,
-                                      &line_addr, &repl_line_addr);
+                                      &line_addr, &repl_line_addr, NULL);
     ASSERT(dc->proc_id, req->emitted_cycle);
     ASSERT(dc->proc_id, cycle_count >= req->emitted_cycle);
     // mark the data as HW_prefetch if prefetch mark it as
@@ -676,7 +676,7 @@ Flag dcache_fill_line(Mem_Req* req) {
     }
 
     data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, req->addr,
-                                      &line_addr, &repl_line_addr);
+                                      &line_addr, &repl_line_addr, NULL);
     DEBUG(dc->proc_id,
           "Filling dcache  off_path:%d addr:0x%s  :%7d index:%7d op_count:%d "
           "oldest:%lld\n",

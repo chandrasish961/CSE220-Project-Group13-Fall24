@@ -193,7 +193,7 @@ void l2way_pref_pred(Mem_Req_Info* req) {
       line = (Dcache_Data*)cache_access(&dc->dcache, va, &line_addr, FALSE);
       if(!line) {
         data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, va,
-                                          &line_addr, &repl_line_addr);
+                                          &line_addr, &repl_line_addr, NULL);
         if(data->dirty) {
           FATAL_ERROR(0,
                       "This writeback code is wrong. Writebacks may be lost.");
@@ -247,7 +247,7 @@ void update_l2way_pref_req_queue(void) {
                                             FALSE);
           if(!line) {
             data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, req_va,
-                                              &line_addr, &repl_line_addr);
+                                              &line_addr, &repl_line_addr, NULL);
             if(data->dirty) {
               FATAL_ERROR(
                 0, "This writeback code is wrong. Writebacks may be lost.");

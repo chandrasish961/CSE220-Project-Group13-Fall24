@@ -301,7 +301,7 @@ Dcache_Data* dc_pref_cache_access(Op* op) {
     Addr dcache_line_addr;
     old_data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id,
                                           op->oracle_info.va, &dcache_line_addr,
-                                          &repl_line_addr);
+                                          &repl_line_addr, NULL);
 
     STAT_EVENT(0, DC_PREF_MOVE_DC);
     DEBUG(dc->proc_id, "pref_dcache fill dcache  addr:0x%s  :%7s index:%7s\n",
@@ -374,7 +374,7 @@ Flag dc_pref_cache_fill_line(Mem_Req* req) {
   Dcache_Data* old_data;
   Addr         line_addr, repl_line_addr;
   old_data = (Dcache_Data*)cache_insert(&dc->pref_dcache, dc->proc_id, addr,
-                                        &line_addr, &repl_line_addr);
+                                        &line_addr, &repl_line_addr, NULL);
   old_data->rdy_cycle = cycle_count + DC_PREF_CACHE_CYCLE;
   DEBUG(dc->proc_id, "Filling pref_cache addr:0x%s :%8s index:%7s \n",
         hexstr64s(addr), unsstr64(addr),
@@ -407,7 +407,7 @@ void dc_pref_cache_insert(Addr addr) {
 
   if(!data && l1_data) {
     Dcache_Data* new_data = (Dcache_Data*)cache_insert(
-      &dc->pref_dcache, dc->proc_id, addr, &line_addr, &repl_line_addr);
+      &dc->pref_dcache, dc->proc_id, addr, &line_addr, &repl_line_addr, NULL);
     DEBUG(dc->proc_id, "Filling pref_cache addr:0x%s :%8s index:%7s \n",
           hexstr64s(addr), unsstr64(addr),
           unsstr64(addr >> LOG2(DCACHE_LINE_SIZE)));
@@ -433,7 +433,7 @@ void ideal_l2l1_prefetcher(Op* op) {
       Dcache_Data* dcache_data;
       dcache_data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id,
                                                op->oracle_info.va, &line_addr,
-                                               &repl_line_addr);
+                                               &repl_line_addr, NULL);
       STAT_EVENT(0, L2_IDEAL_FILL_L1);
       // need to do a write-back
       if(dcache_data->dirty) {

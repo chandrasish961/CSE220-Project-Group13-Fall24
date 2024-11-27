@@ -155,7 +155,7 @@ void pref_2dc_train(Pref_2DC* tdc_hwp, Addr lineAddr, Addr loadPC, Flag is_hit) 
         Addr repl_addr;
         if(!is_hit) {  // insert only on miss
           data = cache_insert(&tdc_hwp->cache, 0, hash, &dummy_lineaddr,
-                              &repl_addr);
+                              &repl_addr, NULL);
         } else {
           return;
         }

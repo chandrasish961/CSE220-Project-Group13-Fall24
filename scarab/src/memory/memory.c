@@ -1563,7 +1563,7 @@ static Flag mem_complete_l1_access(Mem_Req*         req,
         if(!umon_data) {  // miss
           Addr repl_addr;
           umon_data = (Umon_Cache_Data*)cache_insert(
-            umon_cache, req->proc_id, conv_addr, &dummy_addr, &repl_addr);
+            umon_cache, req->proc_id, conv_addr, &dummy_addr, &repl_addr, NULL);
           ASSERT(req->proc_id, lru_pos == -1);
           umon_data->addr     = req->addr;
           umon_data->prefetch = FALSE;
@@ -4414,7 +4414,7 @@ Flag l1_fill_line(Mem_Req* req) {
       (req->type == MRT_DPRF))) {  // ONURP: Add prefetches
     ASSERT(0, ADDR_TRANSLATION == ADDR_TRANS_NONE);
     data = (L1_Data*)cache_insert(&mem->pref_l1_cache, req->proc_id, req->addr,
-                                  &line_addr, &repl_line_addr);
+                                  &line_addr, &repl_line_addr, NULL);
     STAT_EVENT(req->proc_id, L1_PREF_CACHE_FILL);
     req->l1_miss_satisfied = TRUE;
 
@@ -4609,7 +4609,8 @@ Flag l1_fill_line(Mem_Req* req) {
       pref_ul1evictOnPF(req->proc_id, repl_line_addr, data->proc_id);
   } else {
     data = (L1_Data*)cache_insert(&L1(req->proc_id)->cache, req->proc_id,
-                                  req->addr, &line_addr, &repl_line_addr);
+                                  req->addr, &line_addr, &repl_line_addr,
+                                  &req->lastPC);
   }
 
   STAT_EVENT(req->proc_id, NORESET_L1_FILL);
@@ -4672,7 +4673,7 @@ Flag l1_fill_line(Mem_Req* req) {
           if(!umon_data) {  // miss
             Addr repl_addr;
             umon_data = (Umon_Cache_Data*)cache_insert(
-              umon_cache, req->proc_id, conv_addr, &dummy_addr, &repl_addr);
+              umon_cache, req->proc_id, conv_addr, &dummy_addr, &repl_addr, NULL);
             umon_data->addr     = req->addr;
             umon_data->prefetch = TRUE;
           } else {  // hit
@@ -4783,7 +4784,7 @@ Flag mlc_fill_line(Mem_Req* req) {
       &repl_line_addr, mem->pref_replpos, TRUE);
   } else {
     data = (MLC_Data*)cache_insert(&MLC(req->proc_id)->cache, req->proc_id,
-                                   req->addr, &line_addr, &repl_line_addr);
+                                   req->addr, &line_addr, &repl_line_addr, NULL);
   }
 
   if(req->type == MRT_WB_NODIRTY || req->type == MRT_WB) {
@@ -5212,7 +5213,7 @@ L1_Data* l1_pref_cache_access(Mem_Req* req) {
 
   if(pref_data) {
     data = cache_insert(&L1(req->proc_id)->cache, req->proc_id, req->addr,
-                        &line_addr, &repl_line_addr);
+                        &line_addr, &repl_line_addr, &req->lastPC);
     STAT_EVENT(req->proc_id, L1_DATA_EVICT);
     STAT_EVENT(req->proc_id, L1_PREF_MOVE_L1);
     if(data) {

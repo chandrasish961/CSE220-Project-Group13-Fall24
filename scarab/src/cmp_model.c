@@ -429,7 +429,7 @@ void warmup_uncore(uns proc_id, Addr addr, Flag write) {
       STAT_EVENT(repl_proc_id, NORESET_L1_EVICT_NONPREF);
     }
     l1_data = (L1_Data*)cache_insert(l1_cache, proc_id, addr, &dummy_line_addr,
-                                     &repl_line_addr);
+                                     &repl_line_addr, NULL);
     l1_data->proc_id = proc_id;
     l1_data->dirty   = write;
   }
@@ -462,11 +462,11 @@ void cmp_warmup(Op* op) {
     warmup_uncore(proc_id, ia, FALSE);
     Addr repl_line_addr;
     ic_data = (Inst_Info**)cache_insert(icache, proc_id, ia, &dummy_line_addr,
-                                        &repl_line_addr);
+                                        &repl_line_addr, NULL);
     if(WP_COLLECT_STATS) {
       Addr repl_line_addr2;
       line_info = (Icache_Data*)cache_insert(&ic->icache_line_info, proc_id, ia,
-                                                          &dummy_line_addr2, &repl_line_addr2);
+                                                          &dummy_line_addr2, &repl_line_addr2, NULL);
       if(repl_line_addr2 && !line_info->read_count[0])
         inc_cnt_unuseful(proc_id, repl_line_addr2);
       line_info->read_count[0] = 0;
@@ -495,7 +495,7 @@ void cmp_warmup(Op* op) {
       warmup_uncore(proc_id, va, FALSE);
       Addr repl_line_addr;
       dc_data = (Dcache_Data*)cache_insert(dcache, proc_id, va,
-                                           &dummy_line_addr, &repl_line_addr);
+                                           &dummy_line_addr, &repl_line_addr, NULL);
       if(dc_data->dirty)
         warmup_uncore(proc_id, repl_line_addr, TRUE);
       dc_data->dirty          = is_store;

@@ -310,7 +310,7 @@ Inst_Info** lookup_cache() {
       Addr dummy_repl_line_addr;
       line = (Inst_Info**)cache_insert(&ic->icache, ic->proc_id,
                                         ic->fetch_addr, &dummy_line_addr,
-                                        &dummy_repl_line_addr);
+                                        &dummy_repl_line_addr, NULL);
     } else
       STAT_EVENT(ic->proc_id, L2_IDEAL_MISS_ICACHE);
   }
@@ -949,7 +949,7 @@ Flag icache_fill_line(Mem_Req* req)  // cmp FIXME maybe needed to be optimized
 
       line = (Inst_Info**)cache_insert(&ic->pref_icache, ic->proc_id,
                                        ic->fetch_addr, &pref_line_addr,
-                                       &repl_line_addr);
+                                       &repl_line_addr, NULL);
       DEBUG(
         ic->proc_id,
         "Insert PREF_ICACHE fetch_addr0x:%s line_addr:%s index:%ld addr:0x%s\n",
@@ -962,14 +962,14 @@ Flag icache_fill_line(Mem_Req* req)  // cmp FIXME maybe needed to be optimized
 
     ic->line = (Inst_Info**)cache_insert(&ic->icache, ic->proc_id,
                                          ic->fetch_addr, &ic->line_addr,
-                                         &repl_line_addr);
+                                         &repl_line_addr, NULL);
     DEBUG(ic->proc_id, "Got line switch into ic fetch %llx\n", ic->line_addr);
     STAT_EVENT(ic->proc_id, ICACHE_FILL);
 
     if(WP_COLLECT_STATS) {  // cmp IGNORE
       line_info = (Icache_Data*)cache_insert(&ic->icache_line_info, ic->proc_id,
                                              ic->fetch_addr, &dummy_addr2,
-                                             &repl_line_addr2);
+                                             &repl_line_addr2, NULL);
       if (line_info) {
         wp_process_icache_evicted(line_info, req, &repl_line_addr2);
         if(EIP_ENABLE)
@@ -1022,7 +1022,7 @@ Flag icache_fill_line(Mem_Req* req)  // cmp FIXME maybe needed to be optimized
       Addr pref_line_addr;
 
       line = (Inst_Info**)cache_insert(&ic->pref_icache, ic->proc_id, req->addr,
-                                       &pref_line_addr, &repl_line_addr);
+                                       &pref_line_addr, &repl_line_addr, NULL);
       DEBUG(
         ic->proc_id,
         "Insert PREF_ICACHE fetch_addr0x:%s line_addr:%s index:%ld addr:0x%s\n",
@@ -1034,12 +1034,12 @@ Flag icache_fill_line(Mem_Req* req)  // cmp FIXME maybe needed to be optimized
     }
 
     line = (Inst_Info**)cache_insert(&ic->icache, ic->proc_id, req->addr,
-                                     &dummy_addr, &repl_line_addr);
+                                     &dummy_addr, &repl_line_addr, NULL);
 
     if(WP_COLLECT_STATS) {  // cmp IGNORE
       line_info = (Icache_Data*)cache_insert(&ic->icache_line_info, ic->proc_id,
                                              req->addr, &dummy_addr2,
-                                             &repl_line_addr2);
+                                             &repl_line_addr2, NULL);
       if (line_info) {
         STAT_EVENT(ic->proc_id, ICACHE_FILL);
 
@@ -1122,7 +1122,7 @@ Inst_Info** ic_pref_cache_access(void) {
   if(line) {
     inserted_line = (Inst_Info**)cache_insert(&ic->icache, ic->proc_id,
                                               ic->fetch_addr, &ic->line_addr,
-                                              &repl_line_addr);
+                                              &repl_line_addr, NULL);
     DEBUG(ic->proc_id, "ic_pref cache hit:fetch_addr:0x%s \n",
           hexstr64(ic->fetch_addr));
     STAT_EVENT(ic->proc_id, IC_PREF_MOVE_IC);

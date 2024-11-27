@@ -207,7 +207,7 @@ int l2markv_pref_pred(Mem_Req_Info* req, Addr* req_addr) {
       line = (Dcache_Data*)cache_access(&dc->dcache, req_va, &line_addr, FALSE);
       if(!line) {
         data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, req_va,
-                                          &line_addr, &repl_line_addr);
+                                          &line_addr, &repl_line_addr, NULL);
         if(data->dirty) {
           FATAL_ERROR(0,
                       "This writeback code is wrong. Writebacks may be lost.");
@@ -385,7 +385,7 @@ void l2next_pref(Mem_Req_Info* req) {
                                                          &line_addr, FALSE);
           if(!line) {
             Dcache_Data* data = (Dcache_Data*)cache_insert(
-              &dc->dcache, dc->proc_id, req_va, &line_addr, &repl_line_addr);
+              &dc->dcache, dc->proc_id, req_va, &line_addr, &repl_line_addr, NULL);
             if(data->dirty) {
               new_mem_req(MRT_WB, req->proc_id, repl_line_addr,
                           DCACHE_LINE_SIZE, 1, NULL, NULL, 0,

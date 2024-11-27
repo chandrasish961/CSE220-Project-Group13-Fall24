@@ -305,7 +305,7 @@ void bp_btb_gen_update(Bp_Data* bp_data, Op* op) {
                                    TRUE);
     if (!btb_line) {
       btb_line  = (Addr*)cache_insert(&bp_data->btb, bp_data->proc_id, fetch_addr,
-                                      &btb_line_addr, &repl_line_addr);
+                                      &btb_line_addr, &repl_line_addr, NULL);
     }
     *btb_line = op->oracle_info.target;
     // FIXME: the exceptions to this assert are really about x86 vs Alpha
@@ -405,7 +405,7 @@ void bp_ibtb_tc_tagged_update(Bp_Data* bp_data, Op* op) {
   } else {
     // ASSERT(bp_data->proc_id, op->oracle_info.ibp_miss);
     tc_line = (Addr*)cache_insert(&bp_data->tc_tagged, bp_data->proc_id, tc_index,
-                                  &tc_line_addr, &repl_line_addr);
+                                  &tc_line_addr, &repl_line_addr, NULL);
   }
   *tc_line = op->oracle_info.target;
 

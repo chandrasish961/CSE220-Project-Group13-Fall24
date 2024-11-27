@@ -175,7 +175,7 @@ extern struct repl_policy_func repl_policy_func_table[NUM_REPL];
 
 /* Strategy Function */
 void init_cache_strategy(Cache*, const char*, uns, uns, uns, uns, Repl_Policy);
-void *cache_insert_strategy(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr, Addr* repl_line_addr);
+void *cache_insert_strategy(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr, Addr* repl_line_addr, Addr* lastPC);
 void *cache_access_strategy(Cache* cache, Addr addr, Addr* line_addr, Flag update_repl);
 Cache_Entry* cache_evict_strategy(Cache* cache, uns8 proc_id, uns set, uns* way);
 
@@ -186,7 +186,7 @@ const static Flag CACHE_DEBUG_ENABLE = FALSE; // To be Changed into DEBUG_PARA
 
 void  init_cache(Cache*, const char*, uns, uns, uns, uns, Repl_Policy);
 void* cache_access(Cache*, Addr, Addr*, Flag);
-void* cache_insert(Cache*, uns8, Addr, Addr*, Addr*);
+void* cache_insert(Cache*, uns8, Addr, Addr*, Addr*, Addr*);
 void* cache_insert_replpos(Cache* cache, uns8 proc_id, Addr addr,
                            Addr* line_addr, Addr* repl_line_addr,
                            Cache_Insert_Repl insert_repl_policy,

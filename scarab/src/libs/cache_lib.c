@@ -282,9 +282,9 @@ void* cache_access(Cache* cache, Addr addr, Addr* line_addr, Flag update_repl) {
 */
 
 void* cache_insert(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr,
-                   Addr* repl_line_addr) {
+                   Addr* repl_line_addr, Addr* lastPC) {
   if (cache->repl_policy >= REPL_VOID)
-    return cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr);
+    return cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr, lastPC);
 
   return cache_insert_replpos(cache, proc_id, addr, line_addr, repl_line_addr,
                               INSERT_REPL_DEFAULT, FALSE);
@@ -311,7 +311,7 @@ void* cache_insert_replpos(Cache* cache, uns8 proc_id, Addr addr,
   cache_invalidate(cache, addr, line_addr);
 
   if (cache->repl_policy >= REPL_VOID)
-    return cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr);
+    return cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr, NULL);
 
   if(cache->repl_policy == REPL_IDEAL) {
     new_line        = insert_sure_line(cache, set, tag);
@@ -1073,7 +1073,7 @@ void* cache_insert_lru(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr,
   Cache_Entry* new_line;
 
   if (cache->repl_policy >= REPL_VOID)
-    cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr);
+    cache_insert_strategy(cache, proc_id, addr, line_addr, repl_line_addr, NULL);
 
   if(cache->repl_policy == REPL_IDEAL) {
     new_line        = insert_sure_line(cache, set, tag);
@@ -1322,7 +1322,7 @@ void init_cache_strategy(Cache* cache, const char* name, uns cache_size, uns ass
   -- call sub internal func: update_evict -> action_repl -> update_insert
   -- called by external func: cache_insert, cache_insert_replpos, cache_insert_lru
 */
-void *cache_insert_strategy(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr, Addr* repl_line_addr)
+void *cache_insert_strategy(Cache* cache, uns8 proc_id, Addr addr, Addr* line_addr, Addr* repl_line_addr, Addr* lastPC)
 {
   Addr tag;
   uns repl_index;
@@ -1344,7 +1344,7 @@ void *cache_insert_strategy(Cache* cache, uns8 proc_id, Addr addr, Addr* line_ad
   else
     *repl_line_addr = 0;
   repl_policy_func_table[policy].action_repl(cache, new_line, proc_id, tag, line_addr, repl_line_addr);
-  repl_policy_func_table[policy].update_insert(cache, proc_id, set, repl_index, NULL);
+  repl_policy_func_table[policy].update_insert(cache, proc_id, set, repl_index, (void *)lastPC);
 
   return new_line->data;
 }

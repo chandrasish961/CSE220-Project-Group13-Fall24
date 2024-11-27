@@ -493,7 +493,7 @@ void cache_part_l1_access(Mem_Req* req) {
   // update shadow tag
   if(miss) {
     L1_Data* data     = cache_insert(&proc_info->shadow_cache, req->proc_id,
-                                 req->addr, &dummy_line_addr, &dummy_line_addr);
+                                 req->addr, &dummy_line_addr, &dummy_line_addr, NULL);
     data->fetch_cycle = freq_cycle_count(FREQ_DOMAIN_L1) +
                         (stalling || req->type == MRT_WB ? 0 :
                                                            L1_PART_FILL_DELAY);
@@ -512,7 +512,7 @@ void cache_part_l1_warmup(uns proc_id, Addr addr) {
                                          &dummy_line_addr, TRUE);
   if(!data) {
     L1_Data* data     = cache_insert(&proc_info->shadow_cache, proc_id, addr,
-                                 &dummy_line_addr, &dummy_line_addr);
+                                 &dummy_line_addr, &dummy_line_addr, NULL);
     data->fetch_cycle = 0;
   }
 }
