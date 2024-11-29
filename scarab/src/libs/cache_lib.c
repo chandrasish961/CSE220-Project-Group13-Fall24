@@ -34,12 +34,14 @@
 #include "globals/global_vars.h"
 #include "globals/utils.h"
 #include "frontend/frontend_intf.h"
+#include "statistics.h"
 
 #include "core.param.h"
 #include "debug/debug.param.h"
 #include "general.param.h"
 #include "libs/cache_lib.h"
 #include "memory/memory.param.h"
+#include <time.h>
 
 // DeleteMe
 #define ideal_num_entries 256
@@ -1332,20 +1334,32 @@ void *cache_insert_strategy(Cache* cache, uns8 proc_id, Addr addr, Addr* line_ad
   uns set = cache_index(cache, addr, &tag, line_addr);
 
   // Get the selected strategy (policy)
+  //DPRINTF("cache insert strategy 1\n");
   policy = cache_get_policy_index(cache->repl_policy);
-  if (policy == -1)
+  if (policy == -1){
+    DPRINTF("cache insert strategy 1\n");
     return NULL;
+  }
+  //DPRINTF("cache insert strategy 2\n");
 
   DEBUG(0, "%s, %d: Insert Strategy\n", cache->name, cache->repl_policy);
 
   // update_evict -> action_repl -> update_insert
   new_line = repl_policy_func_table[policy].update_evict(cache, proc_id, set, &repl_index, NULL, FALSE); // External func also directly call it
-  if (new_line->valid)
+  //DPRINTF("cache insert strategy 3\n");
+  if (new_line->valid){
+    //DPRINTF("cache insert strategy 2\n");
     *repl_line_addr = new_line->base;
-  else
+  }
+  else{
+    //DPRINTF("cache insert strategy 2\n");
     *repl_line_addr = 0;
+  }
+  //DPRINTF("cache insert strategy 4\n");
   repl_policy_func_table[policy].action_repl(cache, new_line, proc_id, tag, line_addr, repl_line_addr);
+  //DPRINTF("cache insert strategy 5\n");
   repl_policy_func_table[policy].update_insert(cache, proc_id, set, repl_index, (void *)lastPC);
+  //DPRINTF("cache insert strategy 6\n");
 
   return new_line->data;
 }
@@ -1914,16 +1928,18 @@ Cache_Entry* aip_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
 /* LvP History Table */
 typedef struct lvp_table {
   uns8    reference_val_maxStored;    	/* stored generation data */
-  Flag    outcome;                  	/* confidence bit */
+  Flag    predOutcome;                  	/* confidence bit */
 } lvp_table;
 
-lvp_table lvp_history_table[256][256];
+lvp_table lvp_history_table[16][16];
 
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
 void lvp_update_hit(Cache* cache, uns set, uns way, void* arg);
 void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* arg);
 Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external);
+void lvp_action_repl(Cache* cache, Cache_Entry* new_line, uns8 proc_id, Addr tag,
+  Addr* line_addr, Addr* repl_line_addr);
 
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy)
@@ -1932,95 +1948,160 @@ void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns num_sets  = cache_size / line_size / assoc;
   general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
 
+  //DPRINTF("init 1\n");
+
   /* allocate history table */
   cache->predictor = (void *)lvp_history_table;
-  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
+  //DPRINTF("init 2\n");
+  lvp_table (*table)[16] = (lvp_table (*)[16])cache->predictor;
+  //DPRINTF("init 3\n");
  
   /* init the history table */
-  for(ii = 0; ii < 256; ii++) {
-    for(jj = 0; jj < 256; jj++) {
+  for(ii = 0; ii < 16; ii++) {
+    for(jj = 0; jj < 16; jj++) {
     	table[ii][jj].reference_val_maxStored  = 15;
-	table[ii][jj].outcome    	       = 0;
+	table[ii][jj].predOutcome    	       = 0;
     }
   }
+  //DPRINTF("init 4\n");
 
   /* init the per cache-block fields */
   for(ii = 0; ii < num_sets; ii++) {
     for(jj = 0; jj < assoc; jj++) {
       cache->entries[ii][jj].hashedPC              = 0;
-      cache->entries[ii][jj].reference_val 	   = 0;
+      cache->entries[ii][jj].hitCount 	           = 0;
       cache->entries[ii][jj].reference_val_maxPast = 0;
-      cache->entries[ii][jj].outcome 	           = 0;
+      cache->entries[ii][jj].predOutcome 	           = 0;
     }
   }
+  //DPRINTF("init 5\n");
 }
 
 void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
 {
+  lru_update_hit(cache, set, way, arg);
+  //DPRINTF("hit 1\n");
   // Track the hit count for the line in a 4-bit saturating counter.
-  cache->entries[set][way].reference_val++;
-  if (cache->entries[set][way].reference_val > 15)
+  cache->entries[set][way].hitCount++;
+  //DPRINTF("hit 2\n");
+  if (cache->entries[set][way].hitCount > 3)
   {
-    cache->entries[set][way].reference_val = 15;
+    cache->entries[set][way].hitCount = 3;
   }
+  //DPRINTF("hit 3\n");
 
   cache_debug_print_set(cache, set, way, CACHE_EVENT_HIT);
 }
 
+void lvp_action_repl(Cache* cache, Cache_Entry* new_line, uns8 proc_id, Addr tag,
+  Addr* line_addr, Addr* repl_line_addr)
+{
+  new_line->oldproc_id = new_line->proc_id;
+  new_line->oldvalid   = new_line->valid;
+  new_line->oldtag     = new_line->tag;
+  new_line->oldbase    = new_line->base;
+
+  new_line->proc_id = proc_id;
+  new_line->valid   = TRUE;
+  new_line->tag     = tag;
+  new_line->base    = *line_addr;
+}
+
 void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* lastPC)
 {
-  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
+  lru_update_insert(cache, proc_id, set, way, NULL);
+  lvp_table (*table)[16] = (lvp_table (*)[16])cache->predictor;
+  //DPRINTF("lastPC address = %p\n", lastPC);
   Addr        pc_addr     = *((Addr *)lastPC);
+  Addr        evict_addr  = cache->entries[set][way].oldbase;
   Addr        line_addr   = cache->entries[set][way].base;
-  uns8        hash_addr   = 0;
+  uns8        hash_evict_addr   = 0;
+  uns8        hash_line_addr   = 0;
   uns8        hash_pc     = 0;
   uns8        temp;
 
-    // Extract a 8-bit hash of the cache line address.
-    while (line_addr > 0) {
+    // Extract a 8-bit hash of the evict cache line address.
+    while (evict_addr > 0) {
     	// Extract the least significant 8 bits.
-        temp = line_addr & 0xFF;
+        temp = evict_addr & 0xF;
 
 	// XOR with the hash.
-        hash_addr ^= temp;
+        hash_evict_addr ^= temp;
 
 	// Shift right by 8 bits to process the next chunk.
-        line_addr >>= 8;
+        evict_addr >>= 4;
+    }
+
+    // Extract a 8-bit hash of the insert cache line address.
+    while (line_addr > 0) {
+    	// Extract the least significant 8 bits.
+        temp = line_addr & 0xF;
+
+	// XOR with the hash.
+        hash_line_addr ^= temp;
+
+	// Shift right by 8 bits to process the next chunk.
+        line_addr >>= 4;
     }
 
     // Extract a 8-bit hash of the insertion PC.
     while (pc_addr > 0) {
     	// Extract the least significant 8 bits.
-        temp = pc_addr & 0xFF;
+        temp = pc_addr & 0xF;
 
 	// XOR with the hash.
         hash_pc ^= temp;
 
 	// Shift right by 8 bits to process the next chunk.
-        pc_addr >>= 8;
+        pc_addr >>= 4;
     }
 
-    cache->entries[set][way].hashedPC              = hash_pc;
-    cache->entries[set][way].reference_val 	   = 0;
-    cache->entries[set][way].reference_val_maxPast = table[cache->entries[set][way].hashedPC][hash_addr].reference_val_maxStored;
-    cache->entries[set][way].outcome               = table[cache->entries[set][way].hashedPC][hash_addr].outcome;
+    if (((table[hash_pc][hash_line_addr].reference_val_maxStored == 0) &&
+         (table[hash_pc][hash_line_addr].predOutcome)) &&
+         (cache->entries[set][way].predictorEviction == FALSE))
+    {
+
+      STAT_EVENT(proc_id, L1_MISS_LvP_BYPASS);
+
+      cache->entries[set][way].proc_id = cache->entries[set][way].oldproc_id;
+      cache->entries[set][way].valid   = cache->entries[set][way].oldvalid;
+      cache->entries[set][way].tag     = cache->entries[set][way].oldtag;
+      cache->entries[set][way].base    = cache->entries[set][way].oldbase;
+    }
+    else
+    {
+      // history table update
+      table[cache->entries[set][way].hashedPC][hash_evict_addr].reference_val_maxStored = cache->entries[set][way].hitCount;
+      //DPRINTF("hitCount 1 = %d, maxPast 1 = %d\n", cache->entries[set][way].hitCount, cache->entries[set][way].reference_val_maxPast);
+      if (cache->entries[set][way].hitCount >= cache->entries[set][way].reference_val_maxPast)
+      {
+        table[cache->entries[set][way].hashedPC][hash_evict_addr].predOutcome = TRUE;
+      }
+      else
+      {
+        table[cache->entries[set][way].hashedPC][hash_evict_addr].predOutcome = FALSE;
+      }
+
+      cache->entries[set][way].hashedPC              = hash_pc;
+      cache->entries[set][way].hitCount 	     = 0;
+      cache->entries[set][way].reference_val_maxPast = table[cache->entries[set][way].hashedPC][hash_line_addr].reference_val_maxStored;
+      cache->entries[set][way].predOutcome           = table[cache->entries[set][way].hashedPC][hash_line_addr].predOutcome;   
+    }	
 
   cache_debug_print_set(cache, set, way, CACHE_EVENT_INSERT);
 }
 
 Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, void* arg, Flag if_external)
 {
-  lvp_table  (*table)[256] = (lvp_table (*)[256])cache->predictor;
   int          ii;
   Cache_Entry* line;
-  Addr         line_addr;
-  uns8         temp;
-  Addr         hash_addr = 0;
   Flag         found     = FALSE;
 
   for(ii = 0; ii < cache->assoc; ii++) {
-    if ((cache->entries[set][ii].reference_val >= cache->entries[set][ii].reference_val_maxPast) &&
-        (cache->entries[set][ii].outcome))
+    //if (!if_external)
+    //DPRINTF("hitCount = %d, maxPast = %d, confidence = %d\n", cache->entries[set][ii].hitCount, cache->entries[set][ii].reference_val_maxPast, cache->entries[set][ii].predOutcome);
+    if ((cache->entries[set][ii].hitCount >= cache->entries[set][ii].reference_val_maxPast) &&
+        (cache->entries[set][ii].predOutcome))
     {
       *way = ii;
       found = TRUE;
@@ -2030,38 +2111,21 @@ Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
 
   if (found){
     line = &cache->entries[set][*way];
+    if (!if_external){
+    line->predictorEviction = TRUE;
+    STAT_EVENT(proc_id, L1_MISS_LvP_EVICTION);}
   }
   else{
-    // If no line predicted dead, choose the SRRIP eviction candidate instead.
-    line = srrip_update_evict(cache, proc_id, set, way, arg, if_external);
-  }
-
-  // Extract the eviction candidate address.
-  line_addr = line->base;
-
-  // Extract a 8-bit hash of the cache line address.
-  while (line_addr > 0) {
-
-    // Extract the least significant 8 bits.
-    temp = line_addr & 0xFF;
-
-    // XOR with the hash.
-    hash_addr ^= temp;
-
-    // Shift right by 8 bits to process the next chunk.
-    line_addr >>= 8;
-  }
-
-  // history table update
-  table[line->hashedPC][hash_addr].reference_val_maxStored = line->reference_val;
-  if (line->reference_val == line->reference_val_maxPast){
-    table[line->hashedPC][hash_addr].outcome = TRUE;
-  }
-  else{
-    table[line->hashedPC][hash_addr].outcome = FALSE;
+    // If no line predicted dead, choose the LRU eviction candidate instead.
+    line = lru_update_evict(cache, proc_id, set, way, arg, if_external);
+    if (!if_external){
+    line->predictorEviction = FALSE;
+    //DPRINTF("LRU eviction\n");
+    STAT_EVENT(proc_id, L1_MISS_REPL_EVICTION);}
   }
 
   cache_debug_print_set(cache, set, *way, CACHE_EVENT_EVICT);
+  //DPRINTF("evict 2\n");
   return line;
 }
 

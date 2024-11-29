@@ -1335,6 +1335,7 @@ static Flag mem_process_l1_miss_access(Mem_Req*         req,
       ASSERT(req->proc_id, ALLOW_TYPE_MATCHES);
       ASSERT(req->proc_id, req->wb_requested_back);
       if(req->done_func(req)) {
+        //DPRINTF("THREE\n");
         if(!l1_fill_line(req)) {
           req->rdy_cycle = cycle_count + 1;
           return FALSE;
@@ -1349,6 +1350,7 @@ static Flag mem_process_l1_miss_access(Mem_Req*         req,
         return FALSE;
       }
     } else {
+      //DPRINTF("TWO\n");
       STAT_EVENT(req->proc_id, WB_L1_MISS_FILL_L1);  // CMP remove this later
       if(!l1_fill_line(req)) {
         req->rdy_cycle = cycle_count + 1;
@@ -2502,14 +2504,17 @@ static void mem_process_l1_fill_reqs() {
             "size:%d  state: %s\n",
             (long int)(req - mem->req_buffer), Mem_Req_Type_str(req->type),
             hexstr64s(req->addr), req->size, mem_req_state_names[req->state]);
+      //DPRINTF("ONE\n");
       if(l1_fill_line(req)) {
         ASSERT(0, req->type != MRT_WB && req->type != MRT_WB_NODIRTY);
         if(CONSTANT_MEMORY_LATENCY)
           perf_pred_mem_req_done(req);
         if(MLC_PRESENT && req->destination != DEST_L1) {
+          //DPRINTF("ONE MLC\n");
           req->state     = MRS_FILL_MLC;
           req->rdy_cycle = cycle_count + 1;
         } else {
+          //DPRINTF("Dest = %d\n", req->destination);
           req->state     = MRS_FILL_DONE;
           req->rdy_cycle = cycle_count + 1;
         }
@@ -3795,7 +3800,9 @@ Flag new_mem_req(Mem_Req_Type type, uns8 proc_id, Addr addr, uns size,
 
   if(matching_req) {
     // Save the PC initiating this memory request.
+    //DPRINTF("matching_req old lastPC = %llu\n", matching_req->lastPC);
     matching_req->lastPC = op ? op->inst_info->addr : 0;
+    //DPRINTF("matching_req new lastPC = %llu\n", matching_req->lastPC);
 
     // Simulation inaccuracy: an L2-destined request can match a request in the
     // MLC queue, not the other way around
@@ -3959,6 +3966,7 @@ Flag new_mem_req(Mem_Req_Type type, uns8 proc_id, Addr addr, uns size,
 
   new_req->loadPC        = op ? op->inst_info->addr : 0;
   new_req->lastPC        = new_req->loadPC;
+  //DPRINTF("new_req lastPC = %llu\n", new_req->lastPC);
   new_req->prefetcher_id = (pref_info ? pref_info->prefetcher_id : 0);
   new_req->pref_distance = (pref_info ? pref_info->distance : 0);
   new_req->pref_loadPC   = (pref_info ? pref_info->loadPC : 0);
