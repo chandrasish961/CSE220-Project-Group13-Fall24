@@ -435,6 +435,9 @@ DEF_STAT(  L1_MISS		   , DIST  , NO_RATIO  ) // Consider a prefetch hit by deman
 
 DEF_STAT(  L1_HIT_ALL		   , DIST  , NO_RATIO  )
 DEF_STAT(  L1_MISS_ALL		   , DIST  , NO_RATIO  )
+DEF_STAT(  L1_MISS_LvP_BYPASS		   , COUNT  , NO_RATIO  )
+DEF_STAT(  L1_MISS_LvP_EVICTION		   , COUNT  , NO_RATIO  )
+DEF_STAT(  L1_MISS_REPL_EVICTION		   , COUNT  , NO_RATIO  )
 
 DEF_STAT(  L1_DEMAND_MISS                   ,DIST,    NO_RATIO) // Consider a prefetch hit by demand before l1 access as a prefetch
 DEF_STAT(  L1_PREF_REQ_MISS                 ,COUNT,   NO_RATIO)
