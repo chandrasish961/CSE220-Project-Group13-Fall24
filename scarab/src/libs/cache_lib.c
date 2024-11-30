@@ -2060,7 +2060,7 @@ typedef struct lvp_table {
   Flag    predOutcome;                  	/* confidence bit */
 } lvp_table;
 
-lvp_table lvp_history_table[16][16];
+lvp_table lvp_history_table[256][256];
 
 void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
@@ -2082,12 +2082,12 @@ void lvp_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   /* allocate history table */
   cache->predictor = (void *)lvp_history_table;
   //DPRINTF("init 2\n");
-  lvp_table (*table)[16] = (lvp_table (*)[16])cache->predictor;
+  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
   //DPRINTF("init 3\n");
  
   /* init the history table */
-  for(ii = 0; ii < 16; ii++) {
-    for(jj = 0; jj < 16; jj++) {
+  for(ii = 0; ii < 256; ii++) {
+    for(jj = 0; jj < 256; jj++) {
     	table[ii][jj].reference_val_maxStored  = 15;
 	table[ii][jj].predOutcome    	       = 0;
     }
@@ -2113,9 +2113,9 @@ void lvp_update_hit(Cache* cache, uns set, uns way, void* arg)
   // Track the hit count for the line in a 4-bit saturating counter.
   cache->entries[set][way].hitCount++;
   //DPRINTF("hit 2\n");
-  if (cache->entries[set][way].hitCount > 3)
+  if (cache->entries[set][way].hitCount > 15)
   {
-    cache->entries[set][way].hitCount = 3;
+    cache->entries[set][way].hitCount = 15;
   }
   //DPRINTF("hit 3\n");
 
@@ -2139,7 +2139,7 @@ void lvp_action_repl(Cache* cache, Cache_Entry* new_line, uns8 proc_id, Addr tag
 void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* lastPC)
 {
   lru_update_insert(cache, proc_id, set, way, NULL);
-  lvp_table (*table)[16] = (lvp_table (*)[16])cache->predictor;
+  lvp_table (*table)[256] = (lvp_table (*)[256])cache->predictor;
   //DPRINTF("lastPC address = %p\n", lastPC);
   Addr        pc_addr     = *((Addr *)lastPC);
   Addr        evict_addr  = cache->entries[set][way].oldbase;
@@ -2152,37 +2152,37 @@ void lvp_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* lastP
     // Extract a 8-bit hash of the evict cache line address.
     while (evict_addr > 0) {
     	// Extract the least significant 8 bits.
-        temp = evict_addr & 0xF;
+        temp = evict_addr & 0xFF;
 
 	// XOR with the hash.
         hash_evict_addr ^= temp;
 
 	// Shift right by 8 bits to process the next chunk.
-        evict_addr >>= 4;
+        evict_addr >>= 8;
     }
 
     // Extract a 8-bit hash of the insert cache line address.
     while (line_addr > 0) {
     	// Extract the least significant 8 bits.
-        temp = line_addr & 0xF;
+        temp = line_addr & 0xFF;
 
 	// XOR with the hash.
         hash_line_addr ^= temp;
 
 	// Shift right by 8 bits to process the next chunk.
-        line_addr >>= 4;
+        line_addr >>= 8;
     }
 
     // Extract a 8-bit hash of the insertion PC.
     while (pc_addr > 0) {
     	// Extract the least significant 8 bits.
-        temp = pc_addr & 0xF;
+        temp = pc_addr & 0xFF;
 
 	// XOR with the hash.
         hash_pc ^= temp;
 
 	// Shift right by 8 bits to process the next chunk.
-        pc_addr >>= 4;
+        pc_addr >>= 8;
     }
 
     if (((table[hash_pc][hash_line_addr].reference_val_maxStored == 0) &&
@@ -2261,14 +2261,14 @@ Cache_Entry* lvp_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
 /**************************************************************************************/
 /* Driven Table */
 struct repl_policy_func repl_policy_func_table[NUM_REPL] = {
-  { REPL_LRU_REF, general_action_init,  general_action_repl,  lru_update_hit,     lru_update_insert,    lru_update_evict    },
-  { REPL_NRU,     general_action_init,  general_action_repl,  nru_update_hit,     nru_update_insert,    nru_update_evict    },
-  { REPL_SRRIP,   general_action_init,  general_action_repl,  nru_update_hit,     srrip_update_insert,  srrip_update_evict  },
-  { REPL_BRRIP,   brrip_action_init,    general_action_repl,  nru_update_hit,     brrip_update_insert,  srrip_update_evict  },
-  { REPL_DRRIP,   drrip_action_init,    general_action_repl,  nru_update_hit,     drrip_update_insert,  drrip_update_evict  },
-  { REPL_SHIP,    ship_action_init,     general_action_repl,  ship_update_hit,    ship_update_insert,   ship_update_evict   },
-  { REPL_AIP,     aip_action_init,      general_action_repl,  aip_update_hit,     aip_update_insert,    aip_update_evict    },
-  { REPL_LvP,     lvp_action_init,      general_action_repl,  lvp_update_hit,     lvp_update_insert,    lvp_update_evict    },
-  { REPL_VOID,    NULL,                 NULL,                 NULL,               NULL,                 NULL                },
+  { REPL_LRU_REF,        general_action_init,  general_action_repl,  lru_update_hit,     lru_update_insert,    lru_update_evict    },
+  { REPL_NRU,            general_action_init,  general_action_repl,  nru_update_hit,     nru_update_insert,    nru_update_evict    },
+  { REPL_SRRIP,          general_action_init,  general_action_repl,  nru_update_hit,     srrip_update_insert,  srrip_update_evict  },
+  { REPL_BRRIP,          brrip_action_init,    general_action_repl,  nru_update_hit,     brrip_update_insert,  srrip_update_evict  },
+  { REPL_DRRIP,   	 drrip_action_init,    general_action_repl,  nru_update_hit,     drrip_update_insert,  drrip_update_evict  },
+  { REPL_SHIP,      	 ship_action_init,     general_action_repl,  ship_update_hit,    ship_update_insert,   ship_update_evict   },
+  { REPL_AIP,      	 aip_action_init,      general_action_repl,  aip_update_hit,     aip_update_insert,    aip_update_evict    },
+  { REPL_LvP,     	 lvp_action_init,      lvp_action_repl,      lvp_update_hit,     lvp_update_insert,    lvp_update_evict    },
+  { REPL_VOID,           NULL,                 NULL,                 NULL,               NULL,                 NULL                },
 };
 /**************************************************************************************/
