@@ -1894,10 +1894,10 @@ Cache_Entry* ship_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, vo
 /* AIP History Table */
 typedef struct aip_table {
   uns8    reference_val_maxStored;    	/* stored generation data */
-  Flag    outcome;                  	/* confidence bit */
+  Flag    predOutcome;                  	/* confidence bit */
 } aip_table;
 
-aip_table history_table[256][256];
+aip_table aip_history_table[256][256];
 
 void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns line_size, uns data_size, Repl_Policy repl_policy);
@@ -1913,18 +1913,18 @@ void aip_action_init(Cache* cache, const char* name, uns cache_size, uns assoc,
   uns num_sets  = cache_size / line_size / assoc;
   general_action_init(cache, name, cache_size, assoc, line_size, data_size, repl_policy);
   /* allocate history table */
-  cache->predictor = (void *)history_table;
+  cache->predictor = (void *)aip_history_table;
   aip_table (*table)[256] = (aip_table (*)[256])cache->predictor;
 
-    /* init the history table */
-  for(ii = 0; ii < 16; ii++) {
-    for(jj = 0; jj < 16; jj++) {
+  /* init the history table */
+  for(ii = 0; ii < 256; ii++) {
+    for(jj = 0; jj < 256; jj++) {
     	table[ii][jj].reference_val_maxStored  = 255;
 	    table[ii][jj].predOutcome    	       = 0;
     }
   }
 
-    /* init the per cache-block fields */
+  /* init the per cache-block fields */
   for(ii = 0; ii < num_sets; ii++) {
     for(jj = 0; jj < assoc; jj++) {
       cache->entries[ii][jj].hashedPC              = 0;
@@ -1972,6 +1972,18 @@ void aip_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* lastP
   uns8        hash_line_addr   = 0;
   uns8        hash_pc     = 0;
   uns8        temp;
+
+  // Extract a 8-bit hash of the evict cache line address.
+  while (evict_addr > 0) {
+    // Extract the least significant 8 bits.
+    temp = evict_addr & 0xFF;
+
+	// XOR with the hash.
+    hash_evict_addr ^= temp;
+
+	// Shift right by 8 bits to process the next chunk.
+    evict_addr >>= 8;
+  }
   // Extract a 8-bit hash of the insert cache line address.
   while (line_addr > 0) {
   	// Extract the least significant 8 bits.
@@ -1983,26 +1995,49 @@ void aip_update_insert(Cache* cache, uns8 proc_id, uns set, uns way, void* lastP
 	// Shift right by 8 bits to process the next chunk.
     line_addr >>= 8;
   }
+  // Extract a 8-bit hash of the insertion PC.
+  while (pc_addr > 0) {
+    // Extract the least significant 8 bits.
+    temp = pc_addr & 0xFF;
 
-  // TODO: Extract a 8-bit hash of the PC.
+// XOR with the hash.
+    hash_pc ^= temp;
 
-  // history table update
-  table[cache->entries[set][way].hashedPC][hash_evict_addr].reference_val_maxStored = cache->entries[set][way].reference_val_maxPresent;
-  //DPRINTF("hitCount 1 = %d, maxPast 1 = %d\n", cache->entries[set][way].hitCount, cache->entries[set][way].reference_val_maxPast);
-  if (cache->entries[set][way].reference_val_maxPresent == cache->entries[set][way].reference_val_maxPast)
+// Shift right by 8 bits to process the next chunk.
+    pc_addr >>= 8;
+  }
+  if (((table[hash_pc][hash_line_addr].reference_val_maxStored == 0) &&
+        (table[hash_pc][hash_line_addr].predOutcome)) &&
+        (cache->entries[set][way].predictorEviction == FALSE))
   {
-    table[cache->entries[set][way].hashedPC][hash_evict_addr].predOutcome = TRUE;
+
+    STAT_EVENT(proc_id, L1_MISS_AIP_BYPASS);
+
+    cache->entries[set][way].proc_id = cache->entries[set][way].oldproc_id;
+    cache->entries[set][way].valid   = cache->entries[set][way].oldvalid;
+    cache->entries[set][way].tag     = cache->entries[set][way].oldtag;
+    cache->entries[set][way].base    = cache->entries[set][way].oldbase;
   }
   else
   {
-    table[cache->entries[set][way].hashedPC][hash_evict_addr].predOutcome = FALSE;
-  }
+    // history table update
+    table[cache->entries[set][way].hashedPC][hash_evict_addr].reference_val_maxStored = cache->entries[set][way].reference_val_maxPresent;
+    //DPRINTF("hitCount 1 = %d, maxPast 1 = %d\n", cache->entries[set][way].hitCount, cache->entries[set][way].reference_val_maxPast);
+    if (cache->entries[set][way].reference_val_maxPresent == cache->entries[set][way].reference_val_maxPast)
+    {
+      table[cache->entries[set][way].hashedPC][hash_evict_addr].predOutcome = TRUE;
+    }
+    else
+    {
+      table[cache->entries[set][way].hashedPC][hash_evict_addr].predOutcome = FALSE;
+    }
 
-  cache->entries[set][way].hashedPC              = hash_pc;
-  cache->entries[set][way].hitCount 	   = 0;
-  cache->entries[set][way].reference_val_maxPresent = 0;
-  cache->entries[set][way].reference_val_maxPast = table[cache->entries[set][way].hashedPC][hash_line_addr].reference_val_maxStored;
-  cache->entries[set][way].predOutcome               = table[cache->entries[set][way].hashedPC][hash_line_addr].predOutcome;
+    cache->entries[set][way].hashedPC              = hash_pc;
+    cache->entries[set][way].hitCount 	   = 0;
+    cache->entries[set][way].reference_val_maxPresent = 0;
+    cache->entries[set][way].reference_val_maxPast = table[cache->entries[set][way].hashedPC][hash_line_addr].reference_val_maxStored;
+    cache->entries[set][way].predOutcome               = table[cache->entries[set][way].hashedPC][hash_line_addr].predOutcome;
+  }
   cache_debug_print_set(cache, set, way, CACHE_EVENT_INSERT);
   return;
 }
@@ -2034,16 +2069,18 @@ Cache_Entry* aip_update_evict(Cache* cache, uns8 proc_id, uns set, uns* way, voi
   if (found){
     line = &cache->entries[set][*way];
     if (!if_external){
-    line->predictorEviction = TRUE;
-    STAT_EVENT(proc_id, L1_MISS_AIP_EVICTION);}
+      line->predictorEviction = TRUE;
+      STAT_EVENT(proc_id, L1_MISS_AIP_EVICTION);
+    }
   }
   else{
     // If no line predicted dead, choose the LRU eviction candidate instead.
     line = lru_update_evict(cache, proc_id, set, way, arg, if_external);
     if (!if_external){
-    line->predictorEviction = FALSE;
-    //DPRINTF("LRU eviction\n");
-    STAT_EVENT(proc_id, L1_MISS_REPL_EVICTION);}
+      line->predictorEviction = FALSE;
+      //DPRINTF("LRU eviction\n");
+      STAT_EVENT(proc_id, L1_MISS_REPL_EVICTION);
+    }
   }
 
   cache_debug_print_set(cache, set, *way, CACHE_EVENT_EVICT);
