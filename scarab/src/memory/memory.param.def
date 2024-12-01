@@ -68,6 +68,9 @@ DEF_PARAM(prefetch_update_lru_mlc, PREFETCH_UPDATE_LRU_MLC, Flag, Flag, TRUE, )
 /* L1 */
 DEF_PARAM(force_l1_miss, FORCE_L1_MISS, Flag, Flag, FALSE, )
 DEF_PARAM(l1_size, L1_SIZE, uns, uns, (4 * 1024 * 1024), )
+DEF_PARAM(l1_pc_hash_size, L1_PC_HASH_SIZE, uns, uns, 8, )
+DEF_PARAM(l1_addr_hash_size, L1_ADDR_HASH_SIZE, uns, uns, 8, )
+DEF_PARAM(l1_cntr_size, L1_CNTR_SIZE, uns, uns, 4, )
 DEF_PARAM(l1_assoc, L1_ASSOC, uns, uns, 8, )
 DEF_PARAM(l1_line_size, L1_LINE_SIZE, uns, uns,
           64, ) /* VA_PAGE_SIZE_BYTES, L1_INTERLEAVE_FACTOR is

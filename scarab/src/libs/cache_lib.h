@@ -65,7 +65,9 @@ typedef enum Repl_Policy_enum {
   REPL_DRRIP,           /* dynamic re-reference interval prediction */
   REPL_SHIP,            /* signature-based hit predictor */
   REPL_AIP,             /* Access Interval Predictor */
+  REPL_AIP_BYPASS,      /* Access Interval Predictor with cache bypassing */
   REPL_LvP,             /* Live Time Predictor */
+  REPL_LvP_BYPASS,      /* Live Time Predictor with cache bypassing */
 
   NUM_REPL
 } Repl_Policy;
@@ -82,6 +84,7 @@ typedef struct Cache_Entry_struct {
   Flag    valid;            		/* valid bit for the line */
   Flag    oldvalid;
   Flag    predictorEviction;
+  Flag    predictorTrack;
   Addr    tag;              		/* tag for the line */
   Addr    oldtag;
   Addr    base;             		/* address of first element */
